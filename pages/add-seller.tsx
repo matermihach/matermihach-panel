@@ -1,10 +1,34 @@
 import { useForm } from "react-hook-form";
+import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
+import { app } from "../lib/firebase";
 
 export default function AddSeller() {
-  const { register, handleSubmit } = useForm();
+  const { register, handleSubmit, reset } = useForm();
 
-  const onSubmit = (data: any) => {
-    console.log("Form data:", data);
+  const onSubmit = async (data: any) => {
+    try {
+      const auth = getAuth(app);
+
+      
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        data.email,
+        data.password
+      );
+
+      const user = userCredential.user;
+      console.log("✅ تم إنشاء الحساب بنجاح. UID:", user.uid);
+
+      // الخطوات القادمة: رفع الصورة + تخزين البيانات في Firestore
+      alert("تم إنشاء حساب البائع بنجاح!");
+
+      // تفريغ الفورم بعد الإرسال
+      reset();
+
+    } catch (error: any) {
+      console.error("❌ خطأ في التسجيل:", error.message);
+      alert("فشل في إنشاء الحساب: " + error.message);
+    }
   };
 
   return (
@@ -13,11 +37,10 @@ export default function AddSeller() {
 
       <form onSubmit={handleSubmit(onSubmit)} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
 
-        <input placeholder="Nom du commerce" {...register("storeName")} />
+        <input placeholder="Nom du commerce" {...register("storeName")} required />
+        <input placeholder="Adresse" {...register("address")} required />
 
-        <input placeholder="Adresse" {...register("address")} />
-
-        <select {...register("storeType")}>
+        <select {...register("storeType")} required>
           <option value="">Type de commerce</option>
           <option value="resto_fastfood">Restaurant / Fast Food</option>
           <option value="boulangerie">Boulangerie / Pâtisserie</option>
@@ -27,11 +50,9 @@ export default function AddSeller() {
           <option value="autre">Autre</option>
         </select>
 
-        <input placeholder="Email" type="email" {...register("email")} />
-
-        <input placeholder="Mot de passe" type="password" {...register("password")} />
-
-        <input type="file" {...register("image")} />
+        <input placeholder="Email" type="email" {...register("email")} required />
+        <input placeholder="Mot de passe" type="password" {...register("password")} required />
+        <input type="file" {...register("image")} required />
 
         <button type="submit">Ajouter</button>
       </form>
