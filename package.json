@@ -7,10 +7,11 @@
     "start": "next start"
   },
   "dependencies": {
-    "firebase-admin": "^11.10.1",
-    "next": "13.4.19",
+    "firebase-admin": "^13.4.0",
+    "next": "^13.5.11",
     "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "react-dom": "18.2.0",
+    "react-hook-form": "^7.57.0"
   },
   "devDependencies": {
     "@types/react": "19.1.6",
