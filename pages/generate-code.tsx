@@ -1,61 +1,59 @@
 // pages/generate-code.tsx
-
 import { useState } from 'react';
-import admin from '../lib/firebase-admin';
-
-const db = admin.firestore();
 
 export default function GenerateCodePage() {
   const [email, setEmail] = useState('');
-  const [duration, setDuration] = useState(1); // باليوم
+  const [duration, setDuration] = useState(1); // durée en heures
   const [success, setSuccess] = useState(false);
+  const [code, setCode] = useState('');
   const [error, setError] = useState('');
 
   const handleGenerateCode = async () => {
     setError('');
     setSuccess(false);
+    setCode('');
 
     try {
-      const code = Math.random().toString(36).substr(2, 8).toUpperCase(); // كود عشوائي
-      const expiresAt = admin.firestore.Timestamp.fromDate(
-        new Date(Date.now() + duration * 24 * 60 * 60 * 1000)
-      );
-
-      await db.collection('activation_codes').doc(email).set({
-        email,
-        code,
-        expiresAt,
-        createdAt: admin.firestore.Timestamp.now(),
+      const res = await fetch('/api/generate-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, duration }),
       });
 
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erreur inconnue');
+
       setSuccess(true);
+      setCode(data.code);
     } catch (err: any) {
-      console.error(err);
-      setError('حدث خطأ أثناء توليد الكود');
+      setError(err.message);
     }
   };
 
   return (
     <div style={{ padding: 30 }}>
-      <h2>توليد كود تفعيل</h2>
+      <h2>🎫 Générer un code d’activation</h2>
+
       <input
         type="email"
-        placeholder="البريد الإلكتروني للبائع"
+        placeholder="Adresse e-mail"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        style={{ display: 'block', marginBottom: 10 }}
+        style={{ marginBottom: 10, display: 'block' }}
       />
+
       <input
         type="number"
-        placeholder="مدة الصلاحية (أيام)"
+        placeholder="Durée (en heures)"
         value={duration}
-        onChange={(e) => setDuration(parseInt(e.target.value))}
-        style={{ display: 'block', marginBottom: 10 }}
+        onChange={(e) => setDuration(Number(e.target.value))}
+        style={{ marginBottom: 10, display: 'block' }}
       />
-      <button onClick={handleGenerateCode}>🔐 توليد الكود</button>
 
-      {success && <p style={{ color: 'green' }}>✅ تم توليد الكود بنجاح!</p>}
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      <button onClick={handleGenerateCode}>Générer</button>
+
+      {success && <p style={{ color: 'green' }}>✅ Code généré: <strong>{code}</strong></p>}
+      {error && <p style={{ color: 'red' }}>❌ {error}</p>}
     </div>
   );
 }
