@@ -2,21 +2,24 @@ import { useState } from 'react';
 
 export default function GenerateCodePage() {
   const [email, setEmail] = useState('');
-  const [expiresAt, setExpiresAt] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [success, setSuccess] = useState(false);
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
+  const [expiration, setExpiration] = useState('');
 
   const handleGenerateCode = async () => {
     setError('');
     setSuccess(false);
     setCode('');
+    setExpiration('');
 
     try {
       const res = await fetch('/api/generate-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, expiresAt }),
+        body: JSON.stringify({ email, startDate, endDate }),
       });
 
       const data = await res.json();
@@ -24,6 +27,7 @@ export default function GenerateCodePage() {
 
       setSuccess(true);
       setCode(data.code);
+      setExpiration(data.expiresAt);
     } catch (err: any) {
       setError(err.message);
     }
@@ -46,10 +50,19 @@ export default function GenerateCodePage() {
         style={{ marginBottom: 10, display: 'block', width: 250 }}
       />
 
+      <label>Date de début :</label>
       <input
         type="datetime-local"
-        value={expiresAt}
-        onChange={(e) => setExpiresAt(e.target.value)}
+        value={startDate}
+        onChange={(e) => setStartDate(e.target.value)}
+        style={{ marginBottom: 10, display: 'block', width: 250 }}
+      />
+
+      <label>Date de fin :</label>
+      <input
+        type="datetime-local"
+        value={endDate}
+        onChange={(e) => setEndDate(e.target.value)}
         style={{ marginBottom: 10, display: 'block', width: 250 }}
       />
 
@@ -61,7 +74,7 @@ export default function GenerateCodePage() {
             ✅ Code généré: <strong>{code}</strong>
           </p>
           <p>
-            📆 Expire à : <strong>{expiresAt}</strong>
+            📆 Expire à : <strong>{expiration}</strong>
           </p>
           <button onClick={handleCopy}>📋 Copier le code</button>
         </div>
