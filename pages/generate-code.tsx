@@ -2,23 +2,21 @@ import { useState } from 'react';
 
 export default function GenerateCodePage() {
   const [email, setEmail] = useState('');
-  const [duration, setDuration] = useState(1); // durée en heures
+  const [expiresAt, setExpiresAt] = useState('');
   const [success, setSuccess] = useState(false);
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
-  const [expiration, setExpiration] = useState('');
 
   const handleGenerateCode = async () => {
     setError('');
     setSuccess(false);
     setCode('');
-    setExpiration('');
 
     try {
       const res = await fetch('/api/generate-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, duration }),
+        body: JSON.stringify({ email, expiresAt }),
       });
 
       const data = await res.json();
@@ -26,7 +24,6 @@ export default function GenerateCodePage() {
 
       setSuccess(true);
       setCode(data.code);
-      setExpiration(data.expiresAt); // تاريخ الانتهاء القادم من الـ API
     } catch (err: any) {
       setError(err.message);
     }
@@ -50,10 +47,9 @@ export default function GenerateCodePage() {
       />
 
       <input
-        type="number"
-        placeholder="Durée (en heures)"
-        value={duration}
-        onChange={(e) => setDuration(Number(e.target.value))}
+        type="datetime-local"
+        value={expiresAt}
+        onChange={(e) => setExpiresAt(e.target.value)}
         style={{ marginBottom: 10, display: 'block', width: 250 }}
       />
 
@@ -65,7 +61,7 @@ export default function GenerateCodePage() {
             ✅ Code généré: <strong>{code}</strong>
           </p>
           <p>
-            📆 Expire à : <strong>{expiration}</strong>
+            📆 Expire à : <strong>{expiresAt}</strong>
           </p>
           <button onClick={handleCopy}>📋 Copier le code</button>
         </div>
