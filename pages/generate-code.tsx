@@ -3,15 +3,17 @@ import { useState } from 'react';
 
 export default function GenerateCodePage() {
   const [email, setEmail] = useState('');
-  const [duration, setDuration] = useState(1); // durée en heures
+  const [duration, setDuration] = useState(1);
   const [success, setSuccess] = useState(false);
   const [code, setCode] = useState('');
+  const [expiresAt, setExpiresAt] = useState('');
   const [error, setError] = useState('');
 
   const handleGenerateCode = async () => {
     setError('');
     setSuccess(false);
     setCode('');
+    setExpiresAt('');
 
     try {
       const res = await fetch('/api/generate-code', {
@@ -25,6 +27,7 @@ export default function GenerateCodePage() {
 
       setSuccess(true);
       setCode(data.code);
+      setExpiresAt(data.expiresAt); // ⏳ نعرض التاريخ هنا
     } catch (err: any) {
       setError(err.message);
     }
@@ -52,7 +55,13 @@ export default function GenerateCodePage() {
 
       <button onClick={handleGenerateCode}>Générer</button>
 
-      {success && <p style={{ color: 'green' }}>✅ Code généré: <strong>{code}</strong></p>}
+      {success && (
+        <div style={{ color: 'green', marginTop: 10 }}>
+          ✅ Code généré: <strong>{code}</strong>
+          <br />
+          ⏳ Expire le: <strong>{expiresAt}</strong>
+        </div>
+      )}
       {error && <p style={{ color: 'red' }}>❌ {error}</p>}
     </div>
   );

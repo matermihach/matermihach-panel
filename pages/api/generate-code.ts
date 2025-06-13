@@ -25,7 +25,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       createdAt: admin.firestore.Timestamp.now(),
     });
 
-    return res.status(200).json({ success: true, code });
+    return res.status(200).json({
+      success: true,
+      code,
+      expiresAt: expiresAt.toDate().toLocaleString('fr-FR'),
+    });
   } catch (error) {
     return res.status(500).json({ error: 'Erreur lors de la génération du code' });
   }
