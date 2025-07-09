@@ -1,8 +1,13 @@
-// /pages/api/generate-code.ts
-
 import type { NextApiRequest, NextApiResponse } from 'next';
 import admin from '../../lib/firebase-admin';
 import { v4 as uuidv4 } from 'uuid';
+
+// ✅ تأكد أن BodyParser مفعل (لـ Next.js API)
+export const config = {
+  api: {
+    bodyParser: true,
+  },
+};
 
 const db = admin.firestore();
 
