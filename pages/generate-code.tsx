@@ -15,6 +15,12 @@ export default function GenerateCodePage() {
     setCode('');
     setExpiration('');
 
+    // ✅ تحقق من الحقول قبل الإرسال
+    if (!email || !startDate || !endDate) {
+      setError("⛔️ Veuillez remplir tous les champs.");
+      return;
+    }
+
     try {
       const res = await fetch('/api/generate-code', {
         method: 'POST',
@@ -22,11 +28,11 @@ export default function GenerateCodePage() {
         body: JSON.stringify({ email, startDate, endDate }),
       });
 
-      const text = await res.text(); // 👈 نأخذ النص بدل json مباشرة
+      const text = await res.text();
 
       let data;
       try {
-        data = JSON.parse(text); // 👈 نحاول نعمل parse
+        data = JSON.parse(text); // ✅ محاولة تحليل الـ JSON
       } catch (err) {
         throw new Error('⚠️ Réponse du serveur invalide (pas en JSON)');
       }
@@ -44,6 +50,7 @@ export default function GenerateCodePage() {
   return (
     <div style={{ padding: '30px', fontFamily: 'Arial' }}>
       <h2>📧 Générer un code d’activation</h2>
+
       <label>Email</label>
       <input
         type="email"
