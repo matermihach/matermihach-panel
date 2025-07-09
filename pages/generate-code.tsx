@@ -4,22 +4,16 @@ export default function GenerateCodePage() {
   const [email, setEmail] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [success, setSuccess] = useState(false);
   const [code, setCode] = useState('');
-  const [error, setError] = useState('');
   const [expiration, setExpiration] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
 
   const handleGenerateCode = async () => {
     setError('');
     setSuccess(false);
     setCode('');
     setExpiration('');
-
-    // ✅ تحقق من الحقول قبل الإرسال
-    if (!email || !startDate || !endDate) {
-      setError('🚫 Merci de remplir tous les champs.');
-      return;
-    }
 
     try {
       const res = await fetch('/api/generate-code', {
@@ -28,7 +22,15 @@ export default function GenerateCodePage() {
         body: JSON.stringify({ email, startDate, endDate }),
       });
 
-      const data = await res.json();
+      const text = await res.text(); // 👈 نأخذ النص بدل json مباشرة
+
+      let data;
+      try {
+        data = JSON.parse(text); // 👈 نحاول نعمل parse
+      } catch (err) {
+        throw new Error('⚠️ Réponse du serveur invalide (pas en JSON)');
+      }
+
       if (!res.ok) throw new Error(data.error || 'Erreur inconnue');
 
       setSuccess(true);
@@ -39,54 +41,43 @@ export default function GenerateCodePage() {
     }
   };
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(code);
-    alert('✅ Code copié !');
-  };
-
   return (
-    <div style={{ padding: 30, fontFamily: 'Arial' }}>
-      <h2>🎫 Générer un code d’activation</h2>
-
+    <div style={{ padding: '30px', fontFamily: 'Arial' }}>
+      <h2>📧 Générer un code d’activation</h2>
+      <label>Email</label>
       <input
         type="email"
-        placeholder="Adresse e-mail"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        style={{ marginBottom: 10, display: 'block', width: 250 }}
+        style={{ marginBottom: '10px', display: 'block', width: '250px' }}
       />
 
-      <label>Date de début :</label>
+      <label>Date de début</label>
       <input
         type="datetime-local"
         value={startDate}
         onChange={(e) => setStartDate(e.target.value)}
-        style={{ marginBottom: 10, display: 'block', width: 250 }}
+        style={{ marginBottom: '10px', display: 'block', width: '250px' }}
       />
 
-      <label>Date de fin :</label>
+      <label>Date de fin</label>
       <input
         type="datetime-local"
         value={endDate}
         onChange={(e) => setEndDate(e.target.value)}
-        style={{ marginBottom: 10, display: 'block', width: 250 }}
+        style={{ marginBottom: '10px', display: 'block', width: '250px' }}
       />
 
       <button onClick={handleGenerateCode}>Générer</button>
 
+      {error && <p style={{ color: 'red' }}>{error}</p>}
       {success && (
-        <div style={{ marginTop: 20 }}>
-          <p style={{ color: 'green' }}>
-            ✅ Code généré: <strong>{code}</strong>
-          </p>
-          <p>
-            📆 Expire à : <strong>{expiration}</strong>
-          </p>
-          <button onClick={handleCopy}>📋 Copier le code</button>
+        <div style={{ marginTop: '20px' }}>
+          <p style={{ color: 'green' }}>✅ Code généré avec succès !</p>
+          <p><strong>Code:</strong> {code}</p>
+          <p><strong>Expire le:</strong> {expiration}</p>
         </div>
       )}
-
-      {error && <p style={{ color: 'red' }}>❌ {error}</p>}
     </div>
   );
 }
