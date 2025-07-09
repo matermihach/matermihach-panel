@@ -15,6 +15,12 @@ export default function GenerateCodePage() {
     setCode('');
     setExpiration('');
 
+    // ✅ تحقق من الحقول قبل الإرسال
+    if (!email || !startDate || !endDate) {
+      setError('🚫 Merci de remplir tous les champs.');
+      return;
+    }
+
     try {
       const res = await fetch('/api/generate-code', {
         method: 'POST',

@@ -10,11 +10,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { email, startDate, endDate } = req.body;
 
   if (!email || !startDate || !endDate) {
-    return res.status(400).json({ error: 'Données manquantes' });
+    return res.status(400).json({ error: '⛔️ Données manquantes. Merci de remplir tous les champs.' });
+  }
+
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+    return res.status(400).json({ error: '⛔️ Format de date invalide.' });
   }
 
   try {
-    // 🔐 تحقق من وجود الإيميل في pending_sellers
     const snapshot = await db
       .collection('pending_sellers')
       .where('email', '==', email)
@@ -26,8 +32,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const code = uuidv4();
-    const expiresAt = admin.firestore.Timestamp.fromDate(new Date(endDate));
-    const createdAt = admin.firestore.Timestamp.fromDate(new Date(startDate));
+    const expiresAt = admin.firestore.Timestamp.fromDate(end);
+    const createdAt = admin.firestore.Timestamp.fromDate(start);
 
     await db.collection('activation_codes').add({
       email,
@@ -39,7 +45,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({
       success: true,
       code,
-      expiresAt: new Date(endDate).toLocaleString('fr-FR'),
+      expiresAt: end.toLocaleString('fr-FR'),
     });
   } catch (error) {
     console.error(error);
