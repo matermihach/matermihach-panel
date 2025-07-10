@@ -23,10 +23,12 @@ export default function GenerateCodePage() {
     }
 
     try {
+      const cleanedEmail = email.trim().toLowerCase(); // تنظيف الإيميل
+
       const res = await fetch('/api/generate-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, startDate, endDate }),
+        body: JSON.stringify({ email: cleanedEmail, startDate, endDate }),
       });
 
       const text = await res.text();
@@ -86,7 +88,7 @@ export default function GenerateCodePage() {
           <p>✅ Code généré avec succès !</p>
           <p><strong>Code:</strong> {code}</p>
           <p><strong>Expire le:</strong> {expiration}</p>
-          {emailSent && <p>📩 Email envoyé à <strong>{email}</strong></p>}
+          {emailSent && <p>📩 Email envoyé à <strong>{email.trim().toLowerCase()}</strong></p>}
         </div>
       )}
     </div>
