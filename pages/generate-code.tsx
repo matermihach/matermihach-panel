@@ -8,18 +8,17 @@ export default function GenerateCodePage() {
   const [expiration, setExpiration] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
 
   const handleGenerateCode = async () => {
     setError('');
     setSuccess(false);
+    setEmailSent(false);
     setCode('');
     setExpiration('');
-    setLoading(true);
 
     if (!email || !startDate || !endDate) {
       setError("⛔️ Veuillez remplir tous les champs.");
-      setLoading(false);
       return;
     }
 
@@ -44,83 +43,50 @@ export default function GenerateCodePage() {
       setSuccess(true);
       setCode(data.code);
       setExpiration(data.expiresAt);
+      setEmailSent(true);
     } catch (err: any) {
       setError(err.message);
-    } finally {
-      setLoading(false);
     }
   };
 
   return (
-    <div style={{
-      padding: '30px',
-      fontFamily: 'Arial',
-      maxWidth: '400px',
-      margin: '0 auto'
-    }}>
-      <h2>🔐 Générer un code d’activation</h2>
+    <div style={{ padding: '30px', fontFamily: 'Arial' }}>
+      <h2>📧 Générer un code d’activation</h2>
 
-      <label style={{ fontWeight: 'bold' }}>Email</label>
+      <label>Email</label>
       <input
         type="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        placeholder="exemple@mail.com"
-        style={{
-          marginBottom: '10px',
-          display: 'block',
-          width: '100%',
-          padding: '8px'
-        }}
+        style={{ marginBottom: '10px', display: 'block', width: '250px' }}
       />
 
-      <label style={{ fontWeight: 'bold' }}>Date de début</label>
+      <label>Date de début</label>
       <input
         type="datetime-local"
         value={startDate}
         onChange={(e) => setStartDate(e.target.value)}
-        style={{
-          marginBottom: '10px',
-          display: 'block',
-          width: '100%',
-          padding: '8px'
-        }}
+        style={{ marginBottom: '10px', display: 'block', width: '250px' }}
       />
 
-      <label style={{ fontWeight: 'bold' }}>Date de fin</label>
+      <label>Date de fin</label>
       <input
         type="datetime-local"
         value={endDate}
         onChange={(e) => setEndDate(e.target.value)}
-        style={{
-          marginBottom: '20px',
-          display: 'block',
-          width: '100%',
-          padding: '8px'
-        }}
+        style={{ marginBottom: '10px', display: 'block', width: '250px' }}
       />
 
-      <button
-        onClick={handleGenerateCode}
-        disabled={loading}
-        style={{
-          backgroundColor: loading ? '#ccc' : '#0070f3',
-          color: '#fff',
-          border: 'none',
-          padding: '10px 20px',
-          cursor: loading ? 'not-allowed' : 'pointer'
-        }}
-      >
-        {loading ? 'Chargement...' : 'Générer'}
-      </button>
+      <button onClick={handleGenerateCode} style={{ padding: '8px 16px' }}>Générer</button>
 
       {error && <p style={{ color: 'red', marginTop: '15px' }}>{error}</p>}
-
+      
       {success && (
-        <div style={{ marginTop: '20px', border: '1px solid #28a745', padding: '10px', borderRadius: '5px' }}>
-          <p style={{ color: 'green' }}>✅ Code généré avec succès !</p>
-          <p><strong>Code :</strong> {code}</p>
-          <p><strong>Expire le :</strong> {expiration}</p>
+        <div style={{ marginTop: '20px', color: 'green' }}>
+          <p>✅ Code généré avec succès !</p>
+          <p><strong>Code:</strong> {code}</p>
+          <p><strong>Expire le:</strong> {expiration}</p>
+          {emailSent && <p>📩 Email envoyé à <strong>{email}</strong></p>}
         </div>
       )}
     </div>

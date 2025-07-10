@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import admin from '../../lib/firebase-admin';
 import { v4 as uuidv4 } from 'uuid';
+import nodemailer from 'nodemailer';
 
 export const config = {
   api: {
@@ -9,6 +10,14 @@ export const config = {
 };
 
 const db = admin.firestore();
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_PASS,
+  },
+});
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
@@ -24,7 +33,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    const emailToFind = email.trim().toLowerCase();
     const start = new Date(startDate);
     const end = new Date(endDate);
 
@@ -40,15 +48,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // حل نهائي: جلب كل الداتا من pending_sellers ثم مقارنة الإيميل يدوياً
-    const snapshot = await db.collection('pending_sellers').get();
+    const normalizedEmail = email.trim().toLowerCase();
 
-    const foundDoc = snapshot.docs.find((doc) => {
-      const dbEmail = doc.data().email?.trim().toLowerCase();
-      return dbEmail === emailToFind;
-    });
+    const snapshot = await db
+      .collection('pending_sellers')
+      .where('email', '==', normalizedEmail)
+      .limit(1)
+      .get();
 
-    if (!foundDoc) {
+    if (snapshot.empty) {
       return res.status(404).json({
         error: '⛔️ Cet email n’est pas inscrit. Veuillez enregistrer le vendeur d’abord.',
       });
@@ -57,23 +65,44 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const code = uuidv4();
 
     await db.collection('activation_codes').add({
-      email: emailToFind,
+      email: normalizedEmail,
       code,
       createdAt: admin.firestore.Timestamp.fromDate(start),
       expiresAt: admin.firestore.Timestamp.fromDate(end),
     });
 
+    const formattedExpiration = end.toLocaleString('fr-FR', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    // إرسال الإيميل
+    await transporter.sendMail({
+      from: `"Matrimihach" <${process.env.GMAIL_USER}>`,
+      to: normalizedEmail,
+      subject: '🔐 Code d’activation – Matrimihach',
+      html: `
+        <p>Bonjour,</p>
+        <p>Voici votre code d’activation pour accéder à l’application des vendeurs :</p>
+        <ul>
+          <li><strong>Email:</strong> ${normalizedEmail}</li>
+          <li><strong>Code d’activation:</strong> ${code}</li>
+          <li><strong>Date d’expiration:</strong> ${formattedExpiration}</li>
+        </ul>
+        <p>Veuillez entrer ce code dans l’application pour activer votre compte.</p>
+        <br />
+        <p>Merci,<br />L’équipe Matrimihach</p>
+      `,
+    });
+
     return res.status(200).json({
       success: true,
       code,
-      expiresAt: end.toLocaleString('fr-FR', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
+      expiresAt: formattedExpiration,
     });
   } catch (error) {
     console.error('Erreur serveur:', error);
