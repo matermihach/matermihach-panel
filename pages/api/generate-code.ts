@@ -24,9 +24,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // تنظيف وتوحيد الإيميل
-    const normalizedEmail = String(email).trim().toLowerCase();
-
+    const normalizedEmail = email.trim().toLowerCase();
     const start = new Date(startDate);
     const end = new Date(endDate);
 
@@ -49,6 +47,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .get();
 
     if (snapshot.empty) {
+      // 👇 للتشخيص: نطبع كل الإيميلات المسجلة حاليًا
+      const debugSnapshot = await db.collection('pending_sellers').get();
+      const allEmails = debugSnapshot.docs.map(doc => doc.data().email);
+      console.warn('Aucun vendeur trouvé pour:', normalizedEmail);
+      console.log('Emails existants dans Firestore:', allEmails);
+
       return res.status(404).json({
         error: '⛔️ Cet email n’est pas inscrit. Veuillez enregistrer le vendeur d’abord.',
       });
