@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import admin from '../../lib/firebase-admin';
 import { v4 as uuidv4 } from 'uuid';
-import nodemailer from 'nodemailer';
 
 export const config = {
   api: {
@@ -39,9 +38,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // 🔎 جلب كل البائعين المسجلين والتحقق يدويًا
+    // 🔍 فحص البائعين وتجاهل المسافات والحروف الكبيرة
     const pendingSellersSnap = await db.collection('pending_sellers').get();
-
     const sellerDoc = pendingSellersSnap.docs.find(doc => {
       const docEmail = (doc.data().email || '').trim().toLowerCase();
       return docEmail === cleanedEmail;
@@ -53,7 +51,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // ✅ توليد الكود
     const code = uuidv4();
 
     await db.collection('activation_codes').add({
@@ -61,15 +58,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       code,
       createdAt: admin.firestore.Timestamp.fromDate(start),
       expiresAt: admin.firestore.Timestamp.fromDate(end),
-    });
-
-    // ✅ إرسال الإيميل
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_PASS,
-      },
     });
 
     const formattedDate = end.toLocaleString('fr-FR', {
@@ -80,24 +68,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       hour: '2-digit',
       minute: '2-digit',
     });
-
-    const mailOptions = {
-      from: `"Ma Trémihaš" <${process.env.GMAIL_USER}>`,
-      to: cleanedEmail,
-      subject: '🔑 Votre code d’activation',
-      html: `
-        <div style="font-family: Arial; line-height: 1.6;">
-          <h2>Bonjour,</h2>
-          <p>Voici votre <strong>code d’activation</strong> pour accéder à l’application :</p>
-          <p style="font-size: 18px; font-weight: bold; color: green;">${code}</p>
-          <p>Ce code est valable jusqu’au : <strong>${formattedDate}</strong></p>
-          <p style="margin-top:20px;">Merci,</p>
-          <p>L’équipe Ma Trémihaš 🍀</p>
-        </div>
-      `,
-    };
-
-    await transporter.sendMail(mailOptions);
 
     return res.status(200).json({
       success: true,
