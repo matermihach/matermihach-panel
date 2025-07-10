@@ -11,14 +11,6 @@ export const config = {
 
 const db = admin.firestore();
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_PASS,
-  },
-});
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     if (req.method !== 'POST') {
@@ -33,13 +25,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
+    const cleanedEmail = email.trim().toLowerCase();
     const start = new Date(startDate);
     const end = new Date(endDate);
 
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      return res.status(400).json({
-        error: '⛔️ Format de date invalide.',
-      });
+      return res.status(400).json({ error: '⛔️ Format de date invalide.' });
     }
 
     if (start >= end) {
@@ -48,11 +39,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    const normalizedEmail = email.trim().toLowerCase();
-
     const snapshot = await db
       .collection('pending_sellers')
-      .where('email', '==', normalizedEmail)
+      .where('email', '==', cleanedEmail)
       .limit(1)
       .get();
 
@@ -65,13 +54,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const code = uuidv4();
 
     await db.collection('activation_codes').add({
-      email: normalizedEmail,
+      email: cleanedEmail,
       code,
       createdAt: admin.firestore.Timestamp.fromDate(start),
       expiresAt: admin.firestore.Timestamp.fromDate(end),
     });
 
-    const formattedExpiration = end.toLocaleString('fr-FR', {
+    // 🚀 Envoi d'email automatique
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.GMAIL_SENDER_EMAIL,
+        pass: process.env.GMAIL_APP_PASSWORD,
+      },
+    });
+
+    const formattedDate = end.toLocaleString('fr-FR', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -80,29 +78,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       minute: '2-digit',
     });
 
-    // إرسال الإيميل
-    await transporter.sendMail({
-      from: `"Matrimihach" <${process.env.GMAIL_USER}>`,
-      to: normalizedEmail,
-      subject: '🔐 Code d’activation – Matrimihach',
+    const mailOptions = {
+      from: `"Matrimihach" <${process.env.GMAIL_SENDER_EMAIL}>`,
+      to: cleanedEmail,
+      subject: '🔑 Votre code d’activation',
       html: `
-        <p>Bonjour,</p>
-        <p>Voici votre code d’activation pour accéder à l’application des vendeurs :</p>
-        <ul>
-          <li><strong>Email:</strong> ${normalizedEmail}</li>
-          <li><strong>Code d’activation:</strong> ${code}</li>
-          <li><strong>Date d’expiration:</strong> ${formattedExpiration}</li>
-        </ul>
-        <p>Veuillez entrer ce code dans l’application pour activer votre compte.</p>
-        <br />
-        <p>Merci,<br />L’équipe Matrimihach</p>
+        <div style="font-family: Arial; line-height: 1.6;">
+          <h2>Bonjour,</h2>
+          <p>Voici votre <strong>code d’activation</strong> pour accéder à l’application :</p>
+          <p style="font-size: 18px; font-weight: bold; color: green;">${code}</p>
+          <p>Ce code est valable jusqu’au : <strong>${formattedDate}</strong></p>
+          <p style="margin-top:20px;">Merci,</p>
+          <p>L’équipe Ma Trémihaš 🍀</p>
+        </div>
       `,
-    });
+    };
+
+    await transporter.sendMail(mailOptions);
 
     return res.status(200).json({
       success: true,
       code,
-      expiresAt: formattedExpiration,
+      expiresAt: formattedDate,
     });
   } catch (error) {
     console.error('Erreur serveur:', error);
