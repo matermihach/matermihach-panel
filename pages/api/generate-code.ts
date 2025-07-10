@@ -39,18 +39,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    const snapshot = await db
-      .collection('pending_sellers')
-      .where('email', '==', cleanedEmail)
-      .limit(1)
-      .get();
+    // 🔎 جلب كل البائعين المسجلين والتحقق يدويًا
+    const pendingSellersSnap = await db.collection('pending_sellers').get();
 
-    if (snapshot.empty) {
+    const sellerDoc = pendingSellersSnap.docs.find(doc => {
+      const docEmail = (doc.data().email || '').trim().toLowerCase();
+      return docEmail === cleanedEmail;
+    });
+
+    if (!sellerDoc) {
       return res.status(404).json({
         error: '⛔️ Cet email n’est pas inscrit. Veuillez enregistrer le vendeur d’abord.',
       });
     }
 
+    // ✅ توليد الكود
     const code = uuidv4();
 
     await db.collection('activation_codes').add({
@@ -60,12 +63,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       expiresAt: admin.firestore.Timestamp.fromDate(end),
     });
 
-    // ✅ إعداد الإيميل
+    // ✅ إرسال الإيميل
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: process.env.GMAIL_SENDER_EMAIL,
-        pass: process.env.GMAIL_APP_PASSWORD,
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_PASS,
       },
     });
 
@@ -79,7 +82,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     const mailOptions = {
-      from: `"Matrimihach" <${process.env.GMAIL_SENDER_EMAIL}>`,
+      from: `"Ma Trémihaš" <${process.env.GMAIL_USER}>`,
       to: cleanedEmail,
       subject: '🔑 Votre code d’activation',
       html: `
@@ -101,6 +104,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       code,
       expiresAt: formattedDate,
     });
+
   } catch (error) {
     console.error('Erreur serveur:', error);
     return res.status(500).json({ error: '❌ Erreur serveur lors de la génération du code.' });
