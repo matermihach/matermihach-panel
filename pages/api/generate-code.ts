@@ -24,6 +24,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
+    // تنظيف وتوحيد الإيميل
+    const normalizedEmail = String(email).trim().toLowerCase();
+
     const start = new Date(startDate);
     const end = new Date(endDate);
 
@@ -41,7 +44,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const snapshot = await db
       .collection('pending_sellers')
-      .where('email', '==', email.trim().toLowerCase())
+      .where('email', '==', normalizedEmail)
       .limit(1)
       .get();
 
@@ -54,7 +57,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const code = uuidv4();
 
     await db.collection('activation_codes').add({
-      email: email.trim().toLowerCase(),
+      email: normalizedEmail,
       code,
       createdAt: admin.firestore.Timestamp.fromDate(start),
       expiresAt: admin.firestore.Timestamp.fromDate(end),
