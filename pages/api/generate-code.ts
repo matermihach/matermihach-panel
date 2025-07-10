@@ -39,21 +39,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // ✅ Recherche dans pending_sellers d'abord
-    let snapshot = await db
+    const snapshot = await db
       .collection('pending_sellers')
       .where('email', '==', cleanedEmail)
       .limit(1)
       .get();
-
-    // ✅ Si pas trouvé, cherche dans sellers
-    if (snapshot.empty) {
-      snapshot = await db
-        .collection('sellers')
-        .where('email', '==', cleanedEmail)
-        .limit(1)
-        .get();
-    }
 
     if (snapshot.empty) {
       return res.status(404).json({
@@ -70,7 +60,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       expiresAt: admin.firestore.Timestamp.fromDate(end),
     });
 
-    // ✅ Email
+    // ✅ إعداد الإيميل
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
