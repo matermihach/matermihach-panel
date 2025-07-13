@@ -38,7 +38,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // 🔍 فحص البائعين وتجاهل المسافات والحروف الكبيرة
+    // 🔍 Chercher le vendeur dans pending_sellers
     const pendingSellersSnap = await db.collection('pending_sellers').get();
     const sellerDoc = pendingSellersSnap.docs.find(doc => {
       const docEmail = (doc.data().email || '').trim().toLowerCase();
@@ -51,10 +51,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
+    const sellerData = sellerDoc.data();
+    const uid = sellerData.uid || sellerDoc.id;
+
     const code = uuidv4();
 
     await db.collection('activation_codes').add({
       email: cleanedEmail,
+      uid, // ✅ Ajout du UID ici
       code,
       createdAt: admin.firestore.Timestamp.fromDate(start),
       expiresAt: admin.firestore.Timestamp.fromDate(end),
